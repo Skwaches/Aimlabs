@@ -6,7 +6,7 @@ def cursor():
 c = cursor()
 c.execute('CREATE TABLE IF NOT EXISTS highscores (username TEXT, score INTEGER)')
 
-def user_indb(user):
+def user_indb(user:str):
     c = cursor()
     with c.connection:
         c.execute('SELECT 1 FROM highscores WHERE username = ?',(user,))
@@ -14,7 +14,7 @@ def user_indb(user):
     c.close()
     return prescence
 
-def score_indb(score):
+def score_indb(score:int):
     c = cursor()
     with c.connection:
         c.execute('SELECT 1 FROM highscores WHERE score = ?',(score,))
@@ -25,14 +25,14 @@ def score_indb(score):
 def all_users():
     c = cursor()
     all_users = []
-    
+    seen = set[int]()
     with c.connection:
         c.execute('SELECT username FROM highscores')
-        for user in list(set(c.fetchall())):
-            all_users.append("".join(user))
+        all_users = [user[0] for user in c.fetchall() if user not in seen and not seen.add(user)]
+    c.close()
     return all_users
 
-def add_scores(user,score):
+def add_scores(user:str,score:int):
     try:
         c = cursor()
         with c.connection:
@@ -41,49 +41,53 @@ def add_scores(user,score):
     except Exception as e:
         print(e)
 
-def get_by_user(users):
+def get_by_user(users:list[str]):
     c = cursor()
-    user_dict = {}
+    all_relevant_values = list[tuple[str,int]]()
+    user_dict = dict[str,list[int]]()
     for user in users:
+        user_dict[user] = []
         with c.connection:
             c.execute('SELECT * FROM highscores WHERE username = ?',(user,))
-            values = c.fetchall()
-        user_dict[user] = [tple[1] for tple in values] if values else "Empty"
+            all_relevant_values+=c.fetchall()
     c.close()
+    
+    for user,val in all_relevant_values:
+        user_dict[user].append(val)
+
     return user_dict
 
-def get_by_score(score):
+def get_by_score(scores:list[int]):
     c = cursor()
-    legends = []
-    with c.connection:
-        c.execute('SELECT username FROM highscores WHERE score = ?',(score,))
-        f_legends  = list(set(c.fetchall()))
-        for tple in f_legends:
-            legends.append(tple[0])
-        c.close()
-    return legends
+    legends = dict[int,list[str]]()
+    for score in scores:
         
+        with c.connection:
+            c.execute('SELECT username FROM highscores WHERE score = ?',(score,))
+            users_with_score = list(dict.fromkeys([user[0] for user in c.fetchall()]))
+        legends[score] = users_with_score
+    c.close()    
+        
+    return legends    
 
 def get_all():
     c = cursor()
-    all_dict ={}
-    
+    all_dict = dict[str,list[int]]()
     with c.connection:
         c.execute('SELECT * FROM highscores')
-        values = c.fetchall()
+        data = c.fetchall()
         c.close()
-    if values:
-        for user, score in values:
-            if user not in all_dict:
-                all_dict[user] = []
-            all_dict[user].append(score)
-        return all_dict
-    else:
-        return "No scores yet"
     
+    for user,value in data:
+        if user in all_dict:
+            all_dict[user].append(value)
+        else:
+            all_dict[user] = []
+            all_dict[user].append(value)
 
+    return all_dict
 
-def del_user_score(user):
+def del_user_score(user:int):
     c =cursor()
     with c.connection:
         c.execute('DELETE FROM highscores WHERE username = ?',(user,))
@@ -95,37 +99,30 @@ def del_all():
         c.execute('DELETE FROM highscores')
     c.close()
 
-def my_searcher(text = str):
+def my_searcher(text:str):
     users = all_users()
-    suggestions=[]
-    if text == "":
-        return []
+    suggestions=list[str]()
+    if text == str():
+        return list[int]()
     for user in users:
         if (user[:len(text)]).upper() == text.upper():
             suggestions.append(user)
     return suggestions
 
-def top(x,alle = False):
+def top(x:int):
     score_board = get_all()
-    top_scorers = []
-    allscores = []
+    top_scores  = list[int]()
     for user in score_board:
-        allscores+=score_board[user]
-        
-    allscores = list(set(allscores))
-    allscores.sort(reverse=True)
-    if alle: x = len(allscores)
-    first_x_scores = allscores[:x]
-    
-    for score in first_x_scores:
-        top_scorers.append((get_by_score(score) ,score))
-    return top_scorers
-    
+        temp_score = max(score_board[user])
+        if len(top_scores)<x:
+            top_scores.append(temp_score)
+        elif temp_score >= min(top_scores):
+            top_scores.append(temp_score)
+            top_scores.remove(min(top_scores))
+    top_scores.sort(reverse=True)
+    return get_by_score(top_scores)
+            
+
 if __name__ == "__main__":
-    # add_scores("s",49)
-    # print(get_by_user("s"))
-    print(all_users())
-    # print(user_indb("s"))
-    # del_all()
-    # print(user_indb("Nyokab"))
-    
+    # print(get_by_user(["click sounds","timesup?","kwach"]))
+    print(top(5))
