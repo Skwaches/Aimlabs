@@ -3,7 +3,7 @@ import gamefuncs
 import random
 import highscoreSDK
 import os
-
+from functools import partial
 # --- Setup ---
 pygame.init()
 pygame.mixer.init()
@@ -55,35 +55,38 @@ fullscreen = False        # Is the game in fullscreen mode?
 running = True            # Main loop control
 start_trigger = False    # Start button pressed
 typing = False            # Is the user typing their name?
-error = False             # Is an error message being shown?
-suggestions_button_dicts = {}  # Dict for suggestion buttons
-suggestions_trigger_dict = {}  # Dict for button triggers
-suggestions = []               # Username suggestions
+suggestions_button_dicts = dict[str,gamefuncs.Button]() # Dict for suggestion buttons
+suggestions_trigger_dict = dict[str,bool]()  # Dict for button triggers
+suggestions = list[str]()               # Username suggestions
 i = 0                         # Error animation step
 def_pos = (0, 0)              # Default position for blitting
-text_input = ""               # User input text
-radius = 20                   # Ball radius
+text_input = str()           # User input text
+ball_radius = 20                   # Ball radius
 max_time = 30*1000               # Max time per round (ms)
 start_time = 0                # Time when round started
 current_time = 0              # Current elapsed time (ms)
 points = 0                    # Player score
 user_available = False        # Is a user selected?
-x = random.randint(radius, default[0] - radius)       # Ball X position
-y = random.randint(30 + radius, default[1] - radius)  # Ball Y position
+x = random.randint(ball_radius, default[0] - ball_radius)       # Ball X position
+y = random.randint(30 + ball_radius, default[1] - ball_radius)  # Ball Y position
 typing_trigger = False        # Enter button pressed
 accurate = False              # Mouse is over the ball
-start_dict = {}               # Start button dict
-ball_dict = {}                # Ball dict
-enter_dict = {}               # Enter button dict
 time_up = False               # Has the timer run out?
-button_color = [(0,0,50),(0,0,20)]
-ball_color = [(200, 245, 190),(150, 195, 140)]
+button_color :list[str|tuple[int,int,int]]= [(0,0,50),(0,0,20)]
+text_color  :list[str|tuple[int,int,int]]= ["Grey","White"]
+ball_color:list[str|tuple[int,int,int]]= [(200, 245, 190),(150, 195, 140)]
 exit_sett_cords = (0,0)
 show_start_text = False
 show_settings   = False
 instr_disp_time = 2000
 sett_trigger = False
-
+button_radius = 10
+sugg_button_color:list[str|tuple[int,int,int]] = ["grey","dark grey"]
+sugg_text_color:list[str|tuple[int,int,int]] = [(0,0,0),(10,10,10)]
+suggestion_button_radius = 0
+def_button = partial(gamefuncs.Button,screen,font,button_dimens,button_color,text_color,button_radius)
+def_suggesion = partial(gamefuncs.Button,screen,font,button_dimens,sugg_button_color,sugg_text_color,suggestion_button_radius)
+def_circle = partial(gamefuncs.my_circle,screen,ball_radius,ball_color)
 ##Defaulf in game adjustables
 sel_back_img  = 0
 sel_pop_sound = 0
@@ -106,12 +109,16 @@ time_limited = True
 dot_limited  = False
 exit_sett_trigger = False
 button_triggers = [] #game_triggers = [typing_trigger,sett_trigger,exit_sett_trigger,start_trigger] + [trigger for _,trigger in suggestions_trigger_dict]
+
+#TESTS WITHIN LOOP
+testing = True
+test_delay = 2000
 TEST_EVENT = pygame.USEREVENT+1
-pygame.time.set_timer(TEST_EVENT,2000)
+if testing: 
+    pygame.time.set_timer(TEST_EVENT,test_delay)
 def test():
-    print(button_triggers)
+    print(suggestions_trigger_dict,typing_trigger)
 while running:
-    button_triggers = [typing_trigger,sett_trigger,exit_sett_trigger,start_trigger] + [suggestions_trigger_dict[trigger] for trigger in suggestions_trigger_dict]
     instr = [font.render(lines[k],True,"White") for k in range(len(lines))]
     instr_centre = [(ful[0]//2,ful[1]//2+instr[k-1].get_height()*k) if fullscreen else (default[0]//2,default[1]//2+instr[k-1].get_height()*k) for k in range(len(lines))]
 
@@ -120,11 +127,8 @@ while running:
     if timing:
         current_time = pygame.time.get_ticks() - start_time
     # Get all users and suggestions for username input
-    if typing: suggestions = highscoreSDK.my_searcher(text_input)
     time_up = current_time >= max_time
-    accurate = gamefuncs.point_in_circle((x, y), radius, pygame.mouse.get_pos())
-
-
+    accurate = gamefuncs.point_in_circle((x, y), ball_radius, pygame.mouse.get_pos())
 
     # --- Button and Ball Dictionaries (for draw_button) ---
     # Calculate button positions based on screen mode
@@ -132,54 +136,37 @@ while running:
     enter_cords = (0, default[1] - button_dimens[1]) if not fullscreen else (0, ful[1] - button_dimens[1])
     settings_cords=(0,0)
 
+    button_triggers = [typing_trigger,sett_trigger,exit_sett_trigger,start_trigger] + [suggestions_trigger_dict[trigger] for trigger in suggestions_trigger_dict]
+
     # Button dictionaries
-    start_dict = {
-        "dimens": button_dimens, "screen": screen, "font": font, "cords": start_cords,
-        "text_on": "Start?", "text_off": "Start", "color_off": button_color[0], "color_on": button_color[1],
-        "textcoloron": "Grey", "textcoloroff": "white"
-    }
-    ball_dict = {
-        "surface": screen, "color": ball_color[0] if not accurate else ball_color[1],
-        "center": (x, y), "radius": radius
-    }
-    enter_dict = {
-        "dimens": button_dimens, "screen": screen, "font": font, "cords": enter_cords,
-        "text_on": ("Enter?" if not user_available else "Switch?") if not typing else text_input,
-        "text_off": ("Enter" if not user_available else "Switch") if not typing else text_input,
-        "color_off": button_color[0], "color_on":  button_color[1] if not typing else button_color[0],
-        "textcoloron": "Grey" if not typing else "white", "textcoloroff": "white"
-    }
-    settings_dict = {"dimens": button_dimens, "screen": screen, "font": font, "cords": settings_cords,
-                 "text_on": "Settings?","text_off": "Settings","color_off": button_color[0], "color_on":  button_color[1],
-                 "textcoloron": "grey", "textcoloroff": "white"}
-    exit_sett_dict ={"dimens": button_dimens, "screen": screen, "font": font, "cords": exit_sett_cords,
-                 "text_on": "Exit?","text_off": "Exit","color_off": button_color[0], "color_on":  button_color[1],
-                 "textcoloron": "grey", "textcoloroff": "white"}
-    # --- Suggestions Buttons ---
+    start_butt = def_button(start_cords,["Start","Start?"])
+    enter_butt = def_button(enter_cords,[("Enter" if not user_available else "Switch") if not typing else text_input,("Enter?" if not user_available else "Switch?") if not typing else text_input]) 
+    settings_butt = def_button(settings_cords,["Settings","Settings?"])
+    exit_sett_butt = def_button(exit_sett_cords,["Exit","Exit?"])
+    ball_butt = def_circle((x,y))
+    
+    
+    ####CLEAR EVERYTHING
+    suggestions_button_dicts.clear()
+    ### SET NEW VALUES
     if typing:
+        suggestions = highscoreSDK.my_searcher(text_input) if typing else list[str]()
         if suggestions:
-            suggestions_button_dicts.clear()
             idx = 1
             for a_suggestion in suggestions:
-                suggestions_button_dicts[a_suggestion] = {
-                    "dimens": button_dimens, "screen": screen, "font": font,
-                    "cords": (enter_cords[0], enter_cords[1] - button_dimens[1] * idx),
-                    "text_on": f"{a_suggestion}?", "text_off": f"{a_suggestion}",
-                    "color_off": (150, 150, 150), "color_on": (70, 70, 70),
-                    "textcoloron": (0, 0, 0), "textcoloroff": (10, 10, 10),"my_border_radius":0,
-                }
+                suggestion_button =  def_suggesion((enter_cords[0], enter_cords[1] - button_dimens[1] * idx), [f"{a_suggestion}",f"{a_suggestion}?"]) #Create button object for each suggestion and store it in the dict under the suggestion name
+                suggestions_button_dicts[a_suggestion] = suggestion_button
                 idx += 1
-        else:
-            suggestions_button_dicts.clear()
+   
 
-    # --- Event Handling ---
+   #Event Handling
     for event in pygame.event.get():
-        if event.type == TEST_EVENT:
+        if testing and event.type == TEST_EVENT:
             test()
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
-            key_sounds[sel_key_sound].play()
+        if event.type == pygame.KEYDOWN and not show_settings:
+            
             if event.key == pygame.K_F11:
                 # Toggle fullscreen
                 fullscreen = not fullscreen
@@ -188,6 +175,7 @@ while running:
                 else:
                     screen = pygame.display.set_mode(default)
             if typing:
+                key_sounds[sel_key_sound].play()
                 # Handle text input for username
                 if event.key == pygame.K_RETURN:
                     user_available = bool(text_input)
@@ -196,18 +184,22 @@ while running:
                     text_input = text_input[:-1]
                 else:
                     text_input += (event.unicode).strip()
+        
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if any(button_triggers):
                 button_sounds[sel_button_sound].play()
             if typing:
-                # Handle suggestion clicks
-                for var in suggestions_trigger_dict:
-                    if suggestions_trigger_dict[var]:
-                        text_input = var
-                        user_available = True
-                        typing = False
-                    elif not typing_trigger:
-                        typing = False
+                # Handle suggestion clicks  
+                if any(suggestions_trigger_dict.values()):
+                    for var in suggestions_trigger_dict:
+                        if suggestions_trigger_dict[var]:
+                            text_input = var
+                            user_available = True
+                            typing = False
+                            suggestions_trigger_dict.clear()
+                            break
+                elif not typing_trigger:
+                    typing = False
             if typing_trigger:
                 # Enter button pressed to start typing
                 typing = True
@@ -228,13 +220,14 @@ while running:
                 # Ball clicked during game
                 pop_sounds[sel_pop_sound].play()
                 if fullscreen:
-                    x = random.randint(radius, ful[0] - radius)
-                    y = random.randint(30 + radius, ful[1] - radius)
+                    x = random.randint(ball_radius, ful[0] - ball_radius)
+                    y = random.randint(30 + ball_radius, ful[1] - ball_radius)
                 else:
-                    x = random.randint(radius, default[0] - radius)
-                    y = random.randint(30 + radius, default[1] - radius)
+                    x = random.randint(ball_radius, default[0] - ball_radius)
+                    y = random.randint(30 + ball_radius, default[1] - ball_radius)
                 points += 1
 
+    
     # --- Drawing ---
     # Set background
     if fullscreen:
@@ -270,35 +263,38 @@ while running:
         # Draw ball and handle game logic
         if timing:
             if not fullscreen:
-                if x > default[0] - radius:
-                    x = random.randint(radius, default[0] - radius)
-                if y > default[1] - radius:
-                    y = random.randint(radius, default[1] - radius)
-            pygame.draw.circle(screen, (200, 245, 190) if not accurate else (150, 195, 140), (x, y), radius)
+                if x > default[0] - ball_radius:
+                    x = random.randint(ball_radius, default[0] - ball_radius)
+                if y > default[1] - ball_radius:
+                    y = random.randint(ball_radius, default[1] - ball_radius)
+            pygame.draw.circle(screen, (200, 245, 190) if not accurate else (150, 195, 140), (x, y), ball_radius)
             if time_up:
                 highscoreSDK.add_scores(text_input, points)
                 timing = False
         else:
             # Draw enter and settings button
-            typing_trigger = gamefuncs.draw_button(**enter_dict)
-            sett_trigger  = gamefuncs.draw_button(**settings_dict)
-            # Draw suggestion buttons if typing
-            if typing:
-                if suggestions:
-                    for suggest in suggestions_button_dicts:
-                        suggestions_trigger_dict[suggest] = gamefuncs.draw_button(**suggestions_button_dicts[suggest])
-                else:
-                    suggestions_button_dicts.clear()
-                    suggestions_trigger_dict.clear()
-            else:
-                suggestions_button_dicts.clear()
+            typing_trigger = gamefuncs.Button.draw(enter_butt)
+            sett_trigger   = gamefuncs.Button.draw(settings_butt)
+
+            
+            if typing:# Draw suggestion buttons if typing
+                ##CLEAR EVERYTHING
                 suggestions_trigger_dict.clear()
+                ##SET NEW VALUES
+                if suggestions:
+                    for a_suggestion in suggestions_button_dicts:
+                        suggestions_trigger_dict[a_suggestion] = gamefuncs.Button.draw(suggestions_button_dicts[a_suggestion]) 
+                
+            
+            
             # Draw start button if user is available and not typing and game not runnin
             if user_available and not typing:
-                    start_trigger = gamefuncs.draw_button(**start_dict)
+                    start_trigger = gamefuncs.Button.draw(start_butt)
                 
     else:
-        exit_sett_trigger = gamefuncs.draw_button(**exit_sett_dict)
+        exit_sett_trigger = gamefuncs.Button.draw(exit_sett_butt)
     
+     # --- Event Handling ---
+
     pygame.display.update()
 

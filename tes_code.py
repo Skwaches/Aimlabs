@@ -6,15 +6,20 @@ other = self.replace("self","other")
 self_waste  = re.findall(r" = \w+",self)
 other_waste = re.findall(r" = \w+",other)
 for waste in self_waste:
-    self=self.replace(waste,"==")
+    self=self.replace(waste,"")
 for waste in other_waste:
     other=other.replace(waste,"")
+
 self_list = self.split(",")
 other_list = other.split(",")
 
 new_code = str()
 for a,b in zip(self_list,other_list):
     new_code+=f"{a+b},"
-print(new_code.removesuffix(","))
+# print(self)
+
+my_dict = {"test":0,"test2":0,"test3":1}
+print(not any(my_dict.values()))
+
 
 

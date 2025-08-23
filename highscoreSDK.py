@@ -103,7 +103,7 @@ def my_searcher(text:str):
     users = all_users()
     suggestions=list[str]()
     if text == str():
-        return list[int]()
+        return suggestions
     for user in users:
         if (user[:len(text)]).upper() == text.upper():
             suggestions.append(user)
