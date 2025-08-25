@@ -1,5 +1,4 @@
 import pygame
-from enum import Enum
 from PIL import Image
 
 def draw_button(screen:pygame.Surface,font:pygame.font.Font, cords:tuple[int,int] ,dimens:tuple[int,int],
@@ -38,28 +37,36 @@ def is_valid_image(file_path:str):
     except (IOError, SyntaxError):
         return False
     
-def slider(screen:pygame.Surface,top_left:tuple[int,int]=(0,0),body_dims:tuple[int,int]=(100,50),
-           rail_dims:tuple[int,int]=(70,30),slider_dim:tuple[int,int]=(20,30),active:bool=False,
-           slider_off_color:str|tuple[int,int,int] = "green",slider_on_color:str|tuple[int,int,int] ="dark green",
-           button_color:str|tuple[int,int,int] = "White",rail_color:str|tuple[int,int,int]= "Dark Grey"):
+def is_font_usable(path: str) -> bool:
+    try:
+        pygame.font.Font(path, 16)  # try loading at some size
+        return True
+    except (FileNotFoundError, pygame.error):
+        return False
+# def slider(screen:pygame.Surface,top_left:tuple[int,int]=(0,0),body_dims:tuple[int,int]=(100,50),
+#            rail_dims:tuple[int,int]=(70,30),slider_dim:tuple[int,int]=(20,30),held:bool=False,
+#            slider_off_color:str|tuple[int,int,int] = "green",slider_on_color:str|tuple[int,int,int] ="dark green",
+#            button_color:str|tuple[int,int,int] = "White",rail_color:str|tuple[int,int,int]= "Dark Grey"):
     
-    button = pygame.Rect(top_left,body_dims)
-    rail   = pygame.Rect((0,0),rail_dims)
-    slider = pygame.Rect((0,0),slider_dim)
-    rail.center = button.center
-    slider.center = (rail.midleft[0]+slider_dim[0]//2,rail.centery) if not active else (rail.midright[0]-slider_dim[0]//2,rail.centery)
-    mouse_pos = pygame.mouse.get_pos()
-    slider_trigger =slider.collidepoint(mouse_pos)
+#     mouse_pos = pygame.mouse.get_pos()
+#     button = pygame.Rect(top_left,body_dims)
+#     rail   = pygame.Rect((0,0),rail_dims)
+#     slider = pygame.Rect((0,0),slider_dim)
+#     rail.center = button.center
+#     slider.center = (rail.midleft[0]+slider_dim[0]//2,rail.centery) if not held else (rail.midright[0]-slider_dim[0]//2,rail.centery)
+    
+#     slider_trigger =slider.collidepoint(mouse_pos)
+   
 
-    button_color = "White"
-    rail_color   = "Dark Grey"
-    slider_color = slider_on_color if slider_trigger else slider_off_color
-    #Displaying
-    pygame.draw.rect(screen,button_color,button,border_radius=20)
-    pygame.draw.rect(screen,rail_color,rail,border_radius=30)
-    pygame.draw.rect(screen,slider_color,slider,border_radius=30)
+#     button_color = "White"
+#     rail_color   = "Dark Grey"
+#     slider_color = slider_on_color if slider_trigger else slider_off_color
+#     #Displaying
+#     pygame.draw.rect(screen,button_color,button,border_radius=20)
+#     pygame.draw.rect(screen,rail_color,rail,border_radius=30)
+#     pygame.draw.rect(screen,slider_color,slider,border_radius=30)
 
-    return slider_trigger
+#     return slider_trigger
 
 class Button():
     def __init__(self,screen:pygame.Surface,foNt:pygame.font.Font,
@@ -77,7 +84,21 @@ class Button():
         self.screen = screen
         self.font   = foNt
         self.left_top = left_top
+
+       
+    class my_circle():
+        def __init__(self,screen:pygame.Surface,radius:float,color:list[str|tuple[int,int,int]],center:tuple[int,int],):
+            self.screen =screen
+            self.center = center
+            self.radius = radius
+            self.color_off = color[0]
+            self.color_on = color[1]
+        def draw(self,accurate:bool):
+            pygame.draw.circle(self.screen,self.color_on if accurate else self.color_off,self.center,self.radius)
+        def __eq__(self, other: object) -> bool:
+            return hash(self) == hash(other)
         
+    
     def __eq__(self, other:object)->bool:
         if isinstance(other,Button):
             tester = [self.dimens==other.dimens,self.text_on==other.text_on,
@@ -108,20 +129,27 @@ class Button():
             self.screen.blit(off,textoff_rect)
         return colliding
             
-class setting(Enum):
-    pass
+class Slider():
+    def __init__(self,slider:pygame.Rect,rail:pygame.Rect,colors:list[str|tuple[int,int,int]],slider_border_radius:int=70,border_radius:int= 20,sld_wid:int=7)->None:
+        slider.center = (rail.left,rail.centery)
+        self.slider = slider
+        self.rail = rail
+        self.color = colors
+        self.border_radius = border_radius
+        self.slider_border_radius = slider_border_radius
+        self.sld_wid = sld_wid
+ 
+    def draw_slider(self,screen:pygame.Surface,held:bool,new_x:int):
+        mouse_pos = pygame.mouse.get_pos()
+        if held:
+            new_x = max(min(mouse_pos[0],self.rail.right),self.rail.left)
+        self.slider.centerx = new_x
+        rail_on   = pygame.Rect(self.rail.topleft,(new_x-self.rail.left,self.rail.height))
+        pygame.draw.rect(screen,self.color[0],self.rail,self.border_radius)
+        pygame.draw.rect(screen,self.color[1],rail_on,self.border_radius)
+        pygame.draw.rect(screen,self.color[2],self.slider,self.sld_wid,self.slider_border_radius)
+        volume = rail_on.width/self.rail.width
+        return new_x,volume
 
-class my_circle():
-    def __init__(self,screen:pygame.Surface,radius:float,color:list[str|tuple[int,int,int]],center:tuple[int,int],):
-        self.screen =screen
-        self.center = center
-        self.radius = radius
-        self.color_off = color[0]
-        self.color_on = color[1]
-    def draw(self,accurate:bool):
-        pygame.draw.circle(self.screen,self.color_on if accurate else self.color_off,self.center,self.radius)
-    def __eq__(self, other: object) -> bool:
-        return hash(self) == hash(other)
-    
 if __name__=="__main__":
     print("Greetings Universe")

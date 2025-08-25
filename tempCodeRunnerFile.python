@@ -35,5 +35,5 @@ font_size = 25
 ##Fonts
 font_files = os.listdir(font_dir)
 font_paths = [os.path.join(font_dir,font_file) for font_file in font_files]
-fonts      = {font_path:pygame.font.Font(font_path,font_size) for font_path in font_paths if gamefuncs.is_font_usable(font_path)}
-font = fonts[def_font]
+fonts      = {font_file:pygame.font.Font(font_path,font_size) for font_file,font_path in zip(font_files,font_paths) if gamefuncs.is_font_usable(font_path)}
+print(fonts)
