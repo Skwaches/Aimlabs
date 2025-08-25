@@ -124,5 +124,4 @@ def top(x:int):
             
 
 if __name__ == "__main__":
-    # print(get_by_user(["click sounds","timesup?","kwach"]))
-    print(top(5))
+    pass

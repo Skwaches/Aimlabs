@@ -1,27 +1,27 @@
 import pygame
-from PIL import Image
+import os
 
-def draw_button(screen:pygame.Surface,font:pygame.font.Font, cords:tuple[int,int] ,dimens:tuple[int,int],
-                text_on:str= "",text_off:str= "",color_off:str|tuple[int,int,int] = "Dark blue",
-                color_on:str|tuple[int,int,int] = "Navy blue",textcoloron:str|tuple[int,int,int] = "Grey",
-                textcoloroff:str|tuple[int,int,int] = "white",my_border_radius:int=10):
+# def draw_button(screen:pygame.Surface,font:pygame.font.Font, cords:tuple[int,int] ,dimens:tuple[int,int],
+#                 text_on:str= "",text_off:str= "",color_off:str|tuple[int,int,int] = "Dark blue",
+#                 color_on:str|tuple[int,int,int] = "Navy blue",textcoloron:str|tuple[int,int,int] = "Grey",
+#                 textcoloroff:str|tuple[int,int,int] = "white",my_border_radius:int=10):
     
-    off       = font.render(text_off,True,textcoloroff)
-    on        = font.render(text_on,True,textcoloron)
-    butt_rect = pygame.Rect(cords,dimens)
-    teon_rect = on.get_rect(center = butt_rect.center)
-    teoff_rect= off.get_rect(center = butt_rect.center)
-    mouse_pos = pygame.mouse.get_pos()
-    colliding = butt_rect.collidepoint(mouse_pos)
-    if colliding:
-        pygame.draw.rect(screen,color_on,butt_rect,border_radius=my_border_radius)
-        screen.blit(on,teon_rect)
+#     off       = font.render(text_off,True,textcoloroff)
+#     on        = font.render(text_on,True,textcoloron)
+#     butt_rect = pygame.Rect(cords,dimens)
+#     teon_rect = on.get_rect(center = butt_rect.center)
+#     teoff_rect= off.get_rect(center = butt_rect.center)
+#     mouse_pos = pygame.mouse.get_pos()
+#     colliding = butt_rect.collidepoint(mouse_pos)
+#     if colliding:
+#         pygame.draw.rect(screen,color_on,butt_rect,border_radius=my_border_radius)
+#         screen.blit(on,teon_rect)
         
             
-    else:
-        pygame.draw.rect(screen,color_off,butt_rect,border_radius=my_border_radius)
-        screen.blit(off,teoff_rect)
-    return colliding
+#     else:
+#         pygame.draw.rect(screen,color_off,butt_rect,border_radius=my_border_radius)
+#         screen.blit(off,teoff_rect)
+#     return colliding
 
 def point_in_circle(center:tuple[float,float],radius:float,point:tuple[float,float]):
     return (center[0] - point[0])**2 + (center[1] -point[1])**2 <= radius**2
@@ -29,19 +29,20 @@ def point_in_circle(center:tuple[float,float],radius:float,point:tuple[float,flo
 def fit(image:pygame.Surface,siz:tuple[int,int]):
     return pygame.transform.smoothscale(image,siz)
 
-def is_valid_image(file_path:str):
-    try:
-        with Image.open(file_path) as img:
-            img.verify()
+def is_valid_image(file_path:str)->bool:
+    if os.path.exists(file_path):
+        try:
+            pygame.image.load(file_path)
             return True
-    except (IOError, SyntaxError):
+        except Exception:
+            return False
+    else:
         return False
-    
 def is_font_usable(path: str) -> bool:
     try:
         pygame.font.Font(path, 16)  # try loading at some size
         return True
-    except (FileNotFoundError, pygame.error):
+    except Exception:
         return False
 # def slider(screen:pygame.Surface,top_left:tuple[int,int]=(0,0),body_dims:tuple[int,int]=(100,50),
 #            rail_dims:tuple[int,int]=(70,30),slider_dim:tuple[int,int]=(20,30),held:bool=False,
@@ -68,6 +69,12 @@ def is_font_usable(path: str) -> bool:
 
 #     return slider_trigger
 
+def key_index(val:str,dic:dict[str,pygame.font.Font]):
+    for id,name in enumerate(dic):
+        if name == val:
+            return id
+    return int()
+
 class Button():
     def __init__(self,screen:pygame.Surface,foNt:pygame.font.Font,
                  dimens:tuple[int,int]=(70,30),color:list[str | tuple[int,int,int]] = ["Navy blue","Red"],
@@ -84,7 +91,7 @@ class Button():
         self.screen = screen
         self.font   = foNt
         self.left_top = left_top
-
+    
        
     class my_circle():
         def __init__(self,screen:pygame.Surface,radius:float,color:list[str|tuple[int,int,int]],center:tuple[int,int],):
@@ -93,12 +100,12 @@ class Button():
             self.radius = radius
             self.color_off = color[0]
             self.color_on = color[1]
+            
         def draw(self,accurate:bool):
             pygame.draw.circle(self.screen,self.color_on if accurate else self.color_off,self.center,self.radius)
         def __eq__(self, other: object) -> bool:
             return hash(self) == hash(other)
         
-    
     def __eq__(self, other:object)->bool:
         if isinstance(other,Button):
             tester = [self.dimens==other.dimens,self.text_on==other.text_on,
