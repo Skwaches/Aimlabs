@@ -1,3 +1,2 @@
-dic = {"a":1,"b":2,"c":3}
-my_name = "b"
-print(dic[1])
+import highscoreSDK
+print(highscoreSDK.all_scores())
