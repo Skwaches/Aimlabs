@@ -1,6 +1,12 @@
 import pygame
 import os
+import re
 
+def usable_no(text:str):
+    new_text = re.search(r'\d+',text)
+    if new_text:
+        return int(new_text.group())
+    return 0
 # def draw_button(screen:pygame.Surface,font:pygame.font.Font, cords:tuple[int,int] ,dimens:tuple[int,int],
 #                 text_on:str= "",text_off:str= "",color_off:str|tuple[int,int,int] = "Dark blue",
 #                 color_on:str|tuple[int,int,int] = "Navy blue",textcoloron:str|tuple[int,int,int] = "Grey",
@@ -91,7 +97,7 @@ class Button():
         self.screen = screen
         self.font   = foNt
         self.left_top = left_top
-    
+        self.rect = pygame.Rect(self.left_top,self.dimens)
        
     class my_circle():
         def __init__(self,screen:pygame.Surface,radius:float,color:list[str|tuple[int,int,int]],center:tuple[int,int],):
@@ -121,7 +127,7 @@ class Button():
     def draw(self)->bool:
         off       = self.font.render(self.text_off,True,self.textcolor_off)
         on        = self.font.render(self.text_on,True,self.textcolor_on)
-        butt_rect = pygame.Rect(self.left_top,self.dimens)
+        butt_rect = self.rect
         texton_rect = on.get_rect(center = butt_rect.center)
         textoff_rect= off.get_rect(center = butt_rect.center)
         mouse_pos = pygame.mouse.get_pos()
@@ -145,10 +151,12 @@ class Slider():
         self.border_radius = border_radius
         self.slider_border_radius = slider_border_radius
         self.sld_wid = sld_wid
- 
-    def draw_slider(self,screen:pygame.Surface,held:bool,new_x:int):
+
+    def draw_slider(self,screen:pygame.Surface,held:bool,new_x:int,clicked:bool):
         mouse_pos = pygame.mouse.get_pos()
         if held:
+            new_x = max(min(mouse_pos[0],self.rail.right),self.rail.left)
+        elif clicked:
             new_x = max(min(mouse_pos[0],self.rail.right),self.rail.left)
         self.slider.centerx = new_x
         rail_on   = pygame.Rect(self.rail.topleft,(new_x-self.rail.left,self.rail.height))

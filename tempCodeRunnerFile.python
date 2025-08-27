@@ -1,2 +1,1 @@
-import highscoreSDK
-print(highscoreSDK.all_scores())
+print(int("se"))
