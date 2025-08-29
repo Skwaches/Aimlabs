@@ -85,7 +85,7 @@ class Button():
     def __init__(self,screen:pygame.Surface,foNt:pygame.font.Font,
                  dimens:tuple[int,int]=(70,30),color:list[str | tuple[int,int,int]] = ["Navy blue","Red"],
                  textcolor:list[str|tuple[int,int,int]] = ["White","Grey"],
-                 border_radius:int=10,left_top:tuple[int,int] = (0,0),text:list[str] = ["Off,On"]):
+                 border_radius:int=0,left_top:tuple[int,int] = (0,0),text:list[str] = ["Off,On"]):
         self.dimens = dimens
         self.text_off = text[0]
         self.text_on = text[1]

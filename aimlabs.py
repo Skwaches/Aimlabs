@@ -10,7 +10,8 @@ running = True
 pygame.init()
 pygame.mixer.init()
 default = (1000, 550)
-ful = (1600, 900)
+screen_size = pygame.display.Info()
+ful = (screen_size.current_w,screen_size.current_h)
 button_dimens = (250, 55)
 screen = pygame.display.set_mode(default)
 pygame.display.set_caption("Skwaches' Aim Game")
@@ -85,19 +86,20 @@ background_images_windowed   = [gamefuncs.fit(pygame.image.load(back_img_path).c
 
 #region Sound effects
 pop_sound_dir = os.path.join(audio_dir,"sound_effects","pop_effect")
-pop_sound_files = os.listdir(pop_sound_dir)
+pop_sound_files = os.listdir(pop_sound_dir) if os.path.exists(pop_sound_dir) else []
 pop_sound_paths = [os.path.join(pop_sound_dir,pop_sound_file) for pop_sound_file in pop_sound_files if pop_sound_file.endswith("mp3")]
 pop_sounds = [pygame.mixer.Sound(pop_sound_path) for pop_sound_path in pop_sound_paths]
 
 button_sound_dir = os.path.join(audio_dir,"sound_effects","button_effect")
-button_sound_files = os.listdir(button_sound_dir)
+button_sound_files = os.listdir(button_sound_dir) if os.path.exists(button_sound_dir) else []
 button_sound_paths = [os.path.join(button_sound_dir,button_sound_file) for button_sound_file in button_sound_files]
 button_sounds = [pygame.mixer.Sound(button_sound_path) for button_sound_path in button_sound_paths]
 
 key_sound_dir = os.path.join(audio_dir,"sound_effects","key_effect")
-key_sound_files = os.listdir(key_sound_dir)
+key_sound_files = os.listdir(key_sound_dir) if os.path.exists(key_sound_dir) else []
 key_sound_paths = [os.path.join(key_sound_dir,key_sound_file) for key_sound_file in key_sound_files if key_sound_file.endswith("mp3")]
 key_sounds = [pygame.mixer.Sound(key_sound_path) for key_sound_path in key_sound_paths]
+
 #endregion
 #endregion
 
@@ -132,7 +134,7 @@ suggestions = list[str]()               # Username suggestions
 i = 0                         # Error animation step
 def_pos = (0, 0)              # Default position for blitting
 text_input = str()           # User input text
-ball_radius = 30                   # Ball radius
+ball_radius = 20                   # Ball radius
 
 start_time = 0                # Time when round started
 current_time = 0              # Current elapsed time (ms)
@@ -163,11 +165,11 @@ sugg_button_color:list[str|tuple[int,int,int]] = ["grey","dark grey"]
 sugg_text_color:list[str|tuple[int,int,int]] = [(0,0,0),(10,10,10)]
 suggestion_button_radius = 0
 max_sugg_display = 4
-changing_display_width =400
+changing_display_width = 200
 music_held = False
 music_trigger = False
 top_users = []
-change_width = 70
+change_width = 150 if not fullscreen else 150
 #endregion
 
 #region -----SETTINGS------
@@ -183,6 +185,7 @@ font_prev_trigger = False
 back_next_trigger =False
 back_prev_trigger =False
 sfx_test_trigger = False
+high_score_clear_trigger=False
 #region sett MUSIC
 
 music_spot = pygame.rect.Rect((0,button_dimens[1]+sett_h_gap),button_dimens)
@@ -233,13 +236,13 @@ font_next_trigger = False
 
 
 #region TESTS WITHIN LOOP
-testing =True
+testing = False
 test_delay = 2000
 TEST_EVENT = pygame.USEREVENT+1
 if testing: 
     pygame.time.set_timer(TEST_EVENT,test_delay)
 def test():
-    print(changing_time,changing_dots)
+    print(max_time,time_input,time_up)
 #endregion
 
 #region Game Modes Logic
@@ -250,11 +253,13 @@ Sub-modes : Whether the dots disappear after a time delay or not.:::
 time_limited = True
 dot_limited  = False
 survival = True
-max_time = 30*1000               # Max time per round (ms)
+max_time = 30*1000   
+min_time = 10            # Max time per round (ms)
 auto_pop_current_time = 0
 auto_pop_start_time = 0 
 auto_pop_delay = 1000
 no_dots = 10
+min_dots = 10
 dots_appeared = 0
 time_limited_trigger = False 
 dot_limited_trigger = False
@@ -273,7 +278,7 @@ high_score_velocity = 30
 while running:
     font_size = 35 if not fullscreen else 49
     button_dimens =(260,55) if not fullscreen else (390,100)
-    change_width = 70 if not fullscreen else 120
+    change_width = 199 if not fullscreen else 250
     if size_change:
 
         fonts = {font_name:pygame.font.Font(font_path,font_size) for font_name,font_path in zip(font_names,font_paths)}
@@ -332,6 +337,7 @@ while running:
 
     #region partial functions for similar values
     def_button = partial(gamefuncs.Button,screen,font,button_dimens,button_color,text_color,button_radius)
+    def2_button = partial(gamefuncs.Button,screen,font,(change_width,button_dimens[1]),button_color,text_color,0)
     def_suggesion = partial(gamefuncs.Button,screen,font,button_dimens,sugg_button_color,sugg_text_color,suggestion_button_radius)
     def_circle = partial(gamefuncs.Button.my_circle,screen,ball_radius,ball_color)
     #endregion
@@ -392,7 +398,7 @@ while running:
     enter_cords = (0, default[1] - button_dimens[1]) if not fullscreen else (0, ful[1] - button_dimens[1])
     settings_cords=(0,0)
 
-    button_triggers = [typing_trigger,sett_trigger,start_trigger] + list(suggestions_trigger_dict.values()) +[back_next_trigger,font_next_trigger,back_prev_trigger,font_prev_trigger]+[game_mode_trigger,high_score_trigger,sfx_test_trigger]+[time_change_trigger,dot_change_trigger]
+    button_triggers = [typing_trigger,sett_trigger,start_trigger] + list(suggestions_trigger_dict.values()) +[back_next_trigger,font_next_trigger,back_prev_trigger,font_prev_trigger]+[game_mode_trigger,time_limited_trigger,dot_limited_trigger,high_score_trigger,sfx_test_trigger]+[time_change_trigger,dot_change_trigger,high_score_clear_trigger]
     
     ### Create Button objects from predefined partial functions
     start_butt = def_button(start_cords,["Start","Start?"])
@@ -401,17 +407,13 @@ while running:
     # exit_sett_butt = def_button(exit_sett_cords,["Exit","Exit?"])
     ball_butt = def_circle((x,y))
     
-    font_next_button = def_button(font_file_rect.topright,["Next","Next?"])
-    font_prev_button = def_button((font_file_rect.left-change_width,font_file_rect.top),["Prev","Prev?"])
-    font_next_button.dimens = ((change_width,button_dimens[1]))
-    font_prev_button.dimens = ((change_width,button_dimens[1]))
+    font_next_button = def2_button(font_file_rect.topright,["Next","Next?"])
+    font_prev_button = def2_button((font_file_rect.left-change_width,font_file_rect.top),["Prev","Prev?"])
 
 
-    font_next_button.dimens = ((change_width,button_dimens[1]))
-    back_next_button = def_button(back_imgfile_rect.topright,["Next","Next?"])
-    back_prev_button = def_button((back_imgfile_rect.left-change_width,back_imgfile_rect.top),["Prev","Prev?"])
-    back_next_button.dimens = (change_width,button_dimens[1])
-    back_prev_button.dimens = ((change_width,button_dimens[1]))
+    back_next_button = def2_button(back_imgfile_rect.topright,["Next","Next?"])
+    back_prev_button = def2_button((back_imgfile_rect.left-change_width,back_imgfile_rect.top),["Prev","Prev?"])
+
 
     high_score_top_left = ((ful[0] - button_dimens[0])//2,0) if fullscreen else ((default[0]-button_dimens[0])//2,0)
     high_score_button = def_button(high_score_top_left,["Highscores","Highscores?"] if not show_high_scores else ["Exit","Exit?"])
@@ -419,13 +421,15 @@ while running:
     game_mode_button = def_button(game_mode_top_left if not show_game_modes else (0,0),["Game Mode","Game Mode?"] if not show_game_modes else ["Exit","Exit?"])
    
     time_limited_button = def_button((0,(ful[1]-button_dimens[1])//4) if fullscreen else (0,(default[1]-button_dimens[1])//4),["Time Limited","Time Limited?"])
-    time_change_button = def_button(time_limited_button.rect.topright,[f"{max_time/1000} s",f"{max_time/1000} s?"] if not changing_time else [f"{time_input} s",f"{time_input} s"])
+    time_change_button = def2_button((time_limited_button.rect.right+(20 if not fullscreen else 60),time_limited_button.rect.top),[f"{max_time/1000} s",f"{max_time/1000} s?"] if not changing_time else [f"{time_input} s",f"{time_input} s"])
     
     dot_limited_button = def_button((0,(ful[1]-button_dimens[1])//2)if fullscreen else (0,(default[1]-button_dimens[1])//2),["Dot limited","Dot limited?"])
-    dot_change_button =def_button(dot_limited_button.rect.topright,[f"{no_dots}.0 dots",f"{no_dots}.0 dots ?"] if not changing_dots else [f"{dot_input} dots",f"{dot_input} dots"] )
+    dot_change_button =def2_button((dot_limited_button.rect.right + (20 if not fullscreen else 60),dot_limited_button.rect.top),[f"{no_dots}.0 dots",f"{no_dots}.0 dots ?"] if not changing_dots else [f"{dot_input} dots",f"{dot_input} dots"] )
     
     survival_button       = def_button((0,(ful[1]-button_dimens[1])*3//4) if fullscreen else (0,(default[1]-button_dimens[1])*3//4),["Survival","Survival?"])
     survival_change_delay = def_button(survival_button.rect.topright,["Survival","Survival?"])
+
+    high_score_clear_button = def2_button(def_pos,["Clear","Wipe db?"])
     if survival:
         survival_button.color_off,survival_button.color_on = ("green","dark green")
     if dot_limited:
@@ -463,7 +467,7 @@ while running:
                 else:
                     screen = pygame.display.set_mode(default)
             if typing:
-                key_sounds[def_key_sound].play()
+                key_sounds[def_key_sound].play() if key_sounds else None
                 # Handle text input for username
                 if event.key == pygame.K_RETURN:
                     user_available = bool(text_input)
@@ -473,26 +477,31 @@ while running:
                 else:
                     text_input += (event.unicode).strip()
             if changing_time:
-                key_sounds[def_key_sound].play()
+                key_sounds[def_key_sound].play() if key_sounds else  None
 
                 if event.key == pygame.K_RETURN:
                     changing_time = False
-                    max_time = gamefuncs.usable_no(time_input)*1000 if gamefuncs.usable_no(time_input)>= 10 else max_time
+                    if gamefuncs.usable_no(time_input)>= min_time:
+                        max_time = gamefuncs.usable_no(time_input)*1000
                 elif event.key == pygame.K_BACKSPACE:
                     time_input = time_input[:-1]
                 else:
                     time_input += (event.unicode).strip()
             if changing_dots:                    
-                key_sounds[def_key_sound].play()
+                key_sounds[def_key_sound].play()  if key_sounds else None
                 if event.key == pygame.K_RETURN:
                     changing_dots = False
-                    no_dots = gamefuncs.usable_no(dot_input) if gamefuncs.usable_no(dot_input)>= 10 else no_dots
+                    if gamefuncs.usable_no(dot_input)>= 10:
+                        no_dots = gamefuncs.usable_no(dot_input)
                 elif event.key == pygame.K_BACKSPACE:
                     dot_input = dot_input[:-1]
                 else:
                     dot_input += (event.unicode).strip()
         if event.type == pygame.MOUSEBUTTONDOWN :
             if event.button == 1:
+                if high_score_clear_trigger:
+                    high_score_clear_trigger = False
+                    highscoreSDK.del_all()
                 if music_trigger:
                     music_held = True
                     music_trigger = False
@@ -505,7 +514,7 @@ while running:
                 elif sfx_clicked_trigger:
                     sfx_clicked = True
                     sfx_clicked_trigger = False
-                if any(button_triggers):
+                if any(button_triggers) and button_sounds:
                     button_sounds[def_button_sound].play()
 
                 if typing:
@@ -535,8 +544,10 @@ while running:
                     show_game_modes = not show_game_modes
                     game_mode_trigger = False
                     if not show_game_modes:
-                        no_dots = gamefuncs.usable_no(dot_input) if gamefuncs.usable_no(dot_input)>= 10 else no_dots
-                        max_time = gamefuncs.usable_no(time_input) if gamefuncs.usable_no(dot_input)>=10 else max_time
+                        if gamefuncs.usable_no(dot_input)>= min_dots:
+                            no_dots = gamefuncs.usable_no(dot_input)
+                        if gamefuncs.usable_no(time_input)>=min_time:
+                            max_time = gamefuncs.usable_no(time_input)*1000
 
                 elif start_trigger:
                     # Start button pressed to begin game
@@ -575,20 +586,21 @@ while running:
                     survival_trigger = False
                 elif time_change_trigger:
                     changing_dots = False
-                    no_dots = gamefuncs.usable_no(dot_input) if gamefuncs.usable_no(dot_input)>= 10 else no_dots
+                    if gamefuncs.usable_no(dot_input) >=min_dots:
+                        no_dots = gamefuncs.usable_no(dot_input)
                     changing_time =True
                     time_input =""
                     time_change_trigger =False
                 elif dot_change_trigger:
                     changing_time = False
-                    max_time = gamefuncs.usable_no(time_input)*1000 if gamefuncs.usable_no(time_input)>= 10 else max_time
-
+                    if gamefuncs.usable_no(time_input) >=min_time:
+                        max_time = gamefuncs.usable_no(time_input)*1000
                     changing_dots =True
                     dot_input = ""
                     dot_change_trigger =False
                 if accurate and timing:
                     # Ball clicked during game
-                    pop_sounds[def_pop_sound].play()
+                    pop_sounds[def_pop_sound].play() if pop_sounds else None
                     auto_pop_start_time = pygame.time.get_ticks()
                     auto_pop_current_time = 0
                     if fullscreen:
@@ -641,14 +653,14 @@ while running:
         user_title = font.render("USERNAME:",True,"Black")
         user_rect  = user_title.get_rect(topleft = (70,button_dimens[1]+high_score_dy))
         screen.blit(user_title,user_rect)
-
+        high_score_clear_trigger=gamefuncs.Button.draw(high_score_clear_button)
         score_title = font.render("SCORES (Dots per second)",True,"Black")
         score_rect  = score_title.get_rect(topleft = ((ful[0] if fullscreen else default[0])//2 , button_dimens[1]+high_score_dy))
         screen.blit(score_title,score_rect)
         font.underline =False
         font.bold =False
         font.italic = True
-        game_highscores = highscoreSDK.top(100)
+        game_highscores = highscoreSDK.top(highscoreSDK.all_plays())
         legend_surfaces = list[pygame.Surface]()
         legend_rects = list[pygame.Rect]()
         high_score_surfaces = list[pygame.Surface]()
@@ -658,8 +670,7 @@ while running:
             for user in game_highscores[score]:
                 legend_surfaces.append(font.render(f"{j}. {user}",True,"White"))
                 high_score_surfaces.append(font.render(f"{score:.3f}",True,"White"))
-                j+=1
-            
+                j+=1       
         for i,(legend_surface,high_score_surface) in enumerate(zip(legend_surfaces,high_score_surfaces)):
             legend_rects.append(legend_surface.get_rect(topleft = (70,(button_dimens[1]+font_size + (legend_surface.get_height()+(10 if not fullscreen else 30))*i) + high_score_dy)))
             high_scores_rects.append(high_score_surface.get_rect(topleft = ( (ful[0] if fullscreen else default[0])//2, legend_rects[i].topleft[1])))
@@ -694,8 +705,7 @@ while running:
 
         #region SFX
         if button_sounds or key_sounds or pop_sounds:
-            sfx_test_butt = def_button((sfx_rail.right+10,sfx_spot.top),["Test","Test?"])
-            sfx_test_butt.dimens = (change_width,button_dimens[1])
+            sfx_test_butt = def2_button((sfx_rail.right+10,sfx_spot.top),["Test","Test?"])
             sfx_test_trigger = gamefuncs.Button.draw(sfx_test_butt)
             screen.blit(sfx_sett,sfx_rect)
             sfx_clicked_trigger = sfx_rail.collidepoint(mouse_pos)
@@ -713,8 +723,6 @@ while running:
 
         #region Background
         if back_img_paths:
-            back_next_button.border_radius = 0 
-            back_prev_button.border_radius = 0
             screen.blit(back_sett,back_rect)
             pygame.draw.rect(screen,back_img_files_color,back_imgfile_rect)
             screen.blit(back_texts[current_back_img],back_imgfile_rect)
@@ -723,13 +731,12 @@ while running:
         #endregion
         
         #region Font
-        screen.blit(font_sett,font_rect)
-        pygame.draw.rect(screen,font_files_color,font_file_rect)
-        screen.blit(font_texts[font_names[current_font_index]],font_file_rect)
-        font_next_button.border_radius = 0
-        font_prev_button.border_radius = 0
-        font_next_trigger = gamefuncs.Button.draw(font_next_button)
-        font_prev_trigger = gamefuncs.Button.draw(font_prev_button)
+        if fonts:
+            screen.blit(font_sett,font_rect)
+            pygame.draw.rect(screen,font_files_color,font_file_rect)
+            screen.blit(font_texts[font_names[current_font_index]],font_file_rect)
+            font_next_trigger = gamefuncs.Button.draw(font_next_button)
+            font_prev_trigger = gamefuncs.Button.draw(font_prev_button)
         #endregion
     #endregion
 
@@ -767,7 +774,7 @@ while running:
             pygame.draw.rect(screen, "Black", point_box)
             screen.blit(point_text, point_rect)
 
-            time_text = font.render(f"{current_time/1000:.2f} s", True, "White")
+            time_text = font.render(f"{(max_time - current_time)/1000:.2f} s Remaining" if time_limited else f"{current_time/1000:.2f} s", True, "White")
             time_box = pygame.Rect((def_pos), time_text.get_size())
             time_rect = time_text.get_rect(center=time_box.center)
             pygame.draw.rect(screen, "Black", time_box)
@@ -797,7 +804,7 @@ while running:
                         x = random.randint(ball_radius, default[0] - ball_radius)
                         y = random.randint(30 + ball_radius, default[1] - ball_radius)
                     dots_appeared+=1
-                    if dots_appeared>=no_dots:
+                    if dot_limited and dots_appeared>=no_dots:
                         timing = False
                         show_end_text = True
             if dot_limited:

@@ -22,11 +22,12 @@ def score_indb(score:float):
 
 def all_users():
     all_users = []
+    seen = set()
     with sqlite3.connect("Scoreboard.db") as conn:
         c = conn.cursor()
-        c.execute('SELECT DISTINCT username FROM highscores')
-        all_users = [user[0] for user in c.fetchall()]
-    
+        c.execute('SELECT username FROM highscores')
+        all_users = list(set(c.fetchall()))
+    all_users = [user[0] for user in all_users]
     return all_users
 def all_scores():
     all_scores = []
@@ -138,5 +139,11 @@ def top(x:int):
 
     return score_board
 
+def all_plays()->int:
+    with sqlite3.connect("Scoreboard.db") as conn:
+        c = conn.cursor()
+        c.execute('SELECT username FROM highscores')
+        all_players = c.fetchall()
+    return len(all_players)
 if __name__ == "__main__":
-    print("Hello User")
+    print(all_plays())
