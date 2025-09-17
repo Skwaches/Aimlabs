@@ -41,7 +41,6 @@ def all_scores():
 def add_scores(user:str,score:float):
     
     try:
-
         with sqlite3.connect("Scoreboard.db") as conn:
             c = conn.cursor()
             c.execute('INSERT INTO highscores VALUES (?,?)',(user,score))

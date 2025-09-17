@@ -111,12 +111,11 @@ for pop_sound in pop_sounds:
 #endregion
 
 #Play first song
-
 if music_paths:
     current_music = random.choice(music_paths)
-    pygame.mixer_music.load(current_music) 
-    pygame.mixer_music.play(0)
-    pygame.mixer_music.set_volume(music_volume)
+    pygame.mixer.music.load(current_music)
+    pygame.mixer.music.play()
+    pygame.mixer.music.set_volume(music_volume)
 else:
     current_music = str()
 #endregion
@@ -242,7 +241,7 @@ TEST_EVENT = pygame.USEREVENT+1
 if testing: 
     pygame.time.set_timer(TEST_EVENT,test_delay)
 def test():
-    print(max_time,time_input,time_up)
+    pass
 #endregion
 
 #region Game Modes Logic
@@ -344,9 +343,9 @@ while running:
 
     #region PLay new song if other one stopped
     if not pygame.mixer.music.get_busy() and music_paths:
-        possible_next_track = list(set(music_paths)-{current_music})
-        if possible_next_track:
-            current_music = random.choice(possible_next_track)
+        possible_next_tracks = list(set(music_paths)-{current_music})
+        if possible_next_tracks:
+            current_music = random.choice(possible_next_tracks)
             pygame.mixer.music.load(current_music)
             pygame.mixer.music.play()
             
@@ -632,6 +631,7 @@ while running:
     #endregion
     if not show_high_scores:
         high_score_dy = 0
+    
     #region  --- Drawing ---
     # Set background
     if back_img_paths:
@@ -700,7 +700,7 @@ while running:
             music_clicked_trigger = music_rail.collidepoint(mouse_pos)
             music_trigger = music_slide_button.collidepoint(mouse_pos)
             music_start,music_volume = gamefuncs.Slider.draw_slider(music_slider,screen,music_held,music_start,music_clicked)
-            pygame.mixer_music.set_volume(music_volume)
+            pygame.mixer.music.set_volume(music_volume)
         #endregion
 
         #region SFX
@@ -711,7 +711,7 @@ while running:
             sfx_clicked_trigger = sfx_rail.collidepoint(mouse_pos)
             sfx_trigger = sfx_slide_button.collidepoint(mouse_pos)
             sfx_start,sfx_volume = gamefuncs.Slider.draw_slider(sfx_slider,screen,sfx_held,sfx_start,sfx_clicked)
-            pygame.mixer_music.set_volume(music_volume)
+            pygame.mixer.music.set_volume(music_volume)
             #Set Effects volume
             for button_sound in button_sounds:
                 button_sound.set_volume(sfx_volume)
@@ -837,4 +837,4 @@ while running:
    
     clock.tick(fps)
     pygame.display.update()
-    
+
