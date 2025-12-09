@@ -1,10 +1,10 @@
 Hello User, this is Skwaches. This is a really bad aimlabs (https://aimlabs.com/) ripoff.
 Its also my first game.
 ->For any compliments get to me via email -->kwach.jaduar@gmail.com
-
-Images files are sourced from unsplash.
-Audio files are from pixabay.
-Font files are from monospace.
+I don't plan on fixing any bugs anytime soon.
+Images files are sourced from unsplash. (https://unsplash.com/)
+Audio files are from pixabay. (https://pixabay.com/)
+Font files are from monaspace.(https://github.com/githubnext/monaspace)
 
 ##**How to play**
 Build from source with pyinstaller.
